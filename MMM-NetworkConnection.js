@@ -11,14 +11,15 @@
 
 Module.register('MMM-NetworkConnection', {
 
-  // Default module config.
-  defaults: {
-    updateInterval: 60 * 1000,
-    animationSpeed: 2.5 * 1000,
+	// Default module config.
+	defaults: {
+		updateInterval: 60 * 1000,
+		animationSpeed: 10000,
     maxTime: 5 * 1000,
 		initialLoadDelay: 2.5 * 1000,
     decimal: 1,
     displayTextStatus: true,
+    useSmallIcons: false,
     language: config.language || 'en',
 	},
 
@@ -32,46 +33,74 @@ Module.register('MMM-NetworkConnection', {
   },
 
   // Define required translations.
-  getTranslations: function() {
+	getTranslations: function() {
     return {
       'en': 'translations/en.json',
       'id': 'translations/id.json'
     };
-  },
+	},
 
 	// Define start sequence.
-    start: function() {
-		Log.info('Starting module: ' + this.name);
+	start: function() {
+		//Log.info('Starting module: ' + this.name);
     var self = this;
+
     // Set locale
 		moment.locale(self.config.language);
-
-    this.downloadSpeed = -1;
-    this.uploadSpeed = -1;
-    this.pingDelay = -1;
     this.firstLoad = true;
+    this.stats = {
+      downloadSpeed: -1,
+      uploadSpeed: -1,
+      pingDelay: -1,
+    }
 
-		setTimeout(() => {
-      this.testUpdate();
-      setInterval(() => {
-        this.testUpdate();
-      }, self.config.updateInterval);
-    }, self.config.initialLoadDelay);
+    this.sendSocketNotification('CONFIG', this.config);
   },
-  
+
+  socketNotificationReceived: function (notification, payload) {
+    switch (notification) {
+      case 'NETCONN_RESULT_DOWNLOAD':
+        this.stats.downloadSpeed = payload;
+      case 'NETCONN_RESULT_UPLOAD':
+        this.stats.uploadSpeed = payload;
+      case 'NETCONN_RESULT_PING':
+        this.stats.pingDelay = payload;
+
+    }
+    this.updateDom(this.firstLoad ? 10000 : this.config.animationSpeed);
+  },
+
+  getFAIconClass(icon) {
+    return 'iconify ' + icon + (this.config.useSmallIcons ? ' fa-sm' : '');
+  },
+
+  getHeaderElement() {
+    const statIcon = document.createElement("i")
+    statIcon.className = this.getFAIconClass('far fa-check-circle');
+
+    const headerText = document.createElement("span")
+    headerText.innerText = this.translate("NETCONN_CONNECTED");
+
+    const header = document.createElement("div")
+    header.appendChild(statIcon);
+    header.appendChild(headerText);
+
+    return header;
+  },
+
   getStatElement(icon, metric, metricSuffix) {
     const statWrapper = document.createElement("span");
     statWrapper.className = 'iconify'
 
-    const statIcon = document.createElement("span")
-    statIcon.className = 'iconify ' + icon
+    const statIcon = document.createElement("i")
+    statIcon.className = this.getFAIconClass(icon);
 
     const statText = document.createElement("span")
     statText.className = "text"
-    statText.textContent = metric > -1 
+    statText.textContent = metric > -1
       ? metric + metricSuffix
       : this.translate("NETCONN_NA");
-    
+
     statWrapper.appendChild(statIcon);
     statWrapper.appendChild(statText);
 
@@ -81,58 +110,58 @@ Module.register('MMM-NetworkConnection', {
 	// Override dom generator.
 	getDom: function() {
     const self = this;
-		const wrapper = document.createElement('div');
+    const wrapper = document.createElement('div');
 
-    if (self.firstLoad && self.pingDelay == -1) {
+    // Display Loading warning until al stats load
+    if (this.firstLoad && Object.values(this.stats).includes(-1)) {
       wrapper.className = "bright small light";
       wrapper.innerHTML = this.translate("LOADING");
-
       return wrapper;
-    }
+    } 
 
-    self.firstLoad = false;
-
+    this.firstLoad = false;
+    
     if (!this.checkConnection()) {
       wrapper.className = 'normal bright';
       wrapper.innerHTML = this.translate("NETCONN_NOTCONNECTED");
-
       return wrapper;
     }
 
     wrapper.className = 'small';
 
-    if (self.config.displayTextStatus) {
-      const headerText = document.createElement("div")
-      headerText.innerText = this.translate("NETCONN_CONNECTED");
-      wrapper.append(headerText);
+    if (this.config.displayTextStatus) {
+      wrapper.append(this.getHeaderElement());
     }
-    wrapper.appendChild
-      (this.getStatElement("fa fa-cloud", self.pingDelay, this.translate("NETCONN_MILLISECOND")),
-    );
-    wrapper.appendChild(this.getStatElement("fa fa-download", self.downloadSpeed, "Mbps"));
-    wrapper.appendChild(this.getStatElement("fa fa-upload", self.uploadSpeed, "Mbps"));
 
-		return wrapper;
-	},
+    const connectionStats = {
+      ping: {
+        icon: 'fa fa-cloud',
+        metric: self.stats.pingDelay,
+        text: this.translate("NETCONN_MILLISECOND"),
+      },
+      download: {
+        icon: 'fa fa-download',
+        metric: self.stats.downloadSpeed,
+        text: "Mbps",
+      },
+      upload: {
+        icon: 'fa fa-upload',
+        metric: self.stats.uploadSpeed,
+        text: "Mbps",
+      },
+    };
+
+    Object.keys(connectionStats).forEach(stat => {
+      const entry = connectionStats[stat];
+      wrapper.appendChild(
+        this.getStatElement(entry.icon, entry.metric, entry.text),
+      );
+    });
+
+    return wrapper;
+  },
 
 	checkConnection: function() {
 		return window.navigator.onLine;
 	},
-
-  testUpdate: function() {
-    this.sendSocketNotification('NETCONN_TEST_START', {'config':this.config});
-  },
-
-  socketNotificationReceived: function(notification, payload) {
-    if (notification == 'NETCONN_RESULT_DOWNLOAD') {
-      this.downloadSpeed = payload;
-    }
-    if (notification == 'NETCONN_RESULT_UPLOAD') {
-      this.uploadSpeed = payload;
-    }
-    if (notification == 'NETCONN_RESULT_PING') {
-      this.pingDelay = payload;
-    }
-    this.updateDom(this.config.animationSpeed);
-  }
 });
