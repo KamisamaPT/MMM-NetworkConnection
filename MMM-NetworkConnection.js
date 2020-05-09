@@ -32,15 +32,15 @@ Module.register('MMM-NetworkConnection', {
   },
 
   // Define required translations.
-	getTranslations: function() {
+  getTranslations: function() {
     return {
       'en': 'translations/en.json',
       'id': 'translations/id.json'
     };
-	},
+  },
 
 	// Define start sequence.
-	start: function() {
+    start: function() {
 		Log.info('Starting module: ' + this.name);
     var self = this;
 
