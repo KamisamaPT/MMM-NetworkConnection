@@ -43,7 +43,6 @@ Module.register('MMM-NetworkConnection', {
     start: function() {
 		Log.info('Starting module: ' + this.name);
     var self = this;
-
     // Set locale
 		moment.locale(self.config.language);
 
