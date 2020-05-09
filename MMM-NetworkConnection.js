@@ -89,9 +89,6 @@ Module.register('MMM-NetworkConnection', {
   },
 
   getStatElement(icon, metric, metricSuffix) {
-    const statWrapper = document.createElement("span");
-    statWrapper.className = 'iconify'
-
     const statIcon = document.createElement("i")
     statIcon.className = this.getFAIconClass(icon);
 
@@ -101,6 +98,7 @@ Module.register('MMM-NetworkConnection', {
       ? metric + metricSuffix
       : this.translate("NETCONN_NA");
 
+    const statWrapper = document.createElement("span");
     statWrapper.appendChild(statIcon);
     statWrapper.appendChild(statText);
 
