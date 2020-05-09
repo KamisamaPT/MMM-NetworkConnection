@@ -7,6 +7,8 @@
  * @see https://github.com/slametps/MMM-NetworkConnection
  */
 
+"use strict";
+
 Module.register('MMM-NetworkConnection', {
 
 	// Default module config.
@@ -21,12 +23,12 @@ Module.register('MMM-NetworkConnection', {
 	},
 
 	getScripts: function() {
-	    return ["moment.js"];
+	  return ["moment.js"];
 	},
 
   // Subclass getStyles method.
   getStyles: function () {
-    return ['font-awesome.css'];
+    return ['font-awesome.css', 'MMM-NetworkConnection.css'];
   },
 
   // Define required translations.
@@ -56,42 +58,60 @@ Module.register('MMM-NetworkConnection', {
         this.testUpdate();
       }, self.config.updateInterval);
     }, self.config.initialLoadDelay);
-	},
+  },
+  
+  getStatElement(icon, metric, metricSuffix) {
+    const statWrapper = document.createElement("span");
+    statWrapper.className = 'iconify'
+
+    const statIcon = document.createElement("span")
+    statIcon.className = 'iconify ' + icon
+
+    const statText = document.createElement("span")
+    statText.className = "text"
+    statText.textContent = metric > -1 
+      ? metric + metricSuffix
+      : this.translate("NETCONN_NA");
+    
+    statWrapper.appendChild(statIcon);
+    statWrapper.appendChild(statText);
+
+    return statWrapper;
+  },
 
 	// Override dom generator.
 	getDom: function() {
-    var self = this;
-		var wrapper = document.createElement('div');
+    const self = this;
+		const wrapper = document.createElement('div');
 
     if (self.firstLoad && self.pingDelay == -1) {
       wrapper.className = "bright small light";
       wrapper.innerHTML = this.translate("LOADING");
-    }
-    else {
-      self.firstLoad = false;
-      var connectionActive = this.checkConnection();
 
-      if (connectionActive) {
-        wrapper.className = 'small';
-        let s = ''
-        if (self.config.displayTextStatus) {
-          s += this.translate("NETCONN_CONNECTED");
-          s += " (";
-        }
-        s += "<span class=\"fa fa-cloud\"></span> "+ (self.pingDelay > -1 ? self.pingDelay + this.translate("NETCONN_MILLISECOND") : this.translate("NETCONN_NA"));
-        s += " ";
-        s += "<span class=\"fa fa-download\"></span>"+ (self.downloadSpeed > -1 ? self.downloadSpeed + "Mbps" : this.translate("NETCONN_NA"));
-        s += " ";
-        s += "<span class=\"fa fa-upload\"></span> "+ (self.uploadSpeed > -1 ? self.uploadSpeed + "Mbps" : this.translate("NETCONN_NA"));
-        if (self.config.displayTextStatus) {
-          s += ")";
-        }
-        wrapper.innerHTML = s;
-      } else {
-        wrapper.className = 'normal bright';
-        wrapper.innerHTML = this.translate("NETCONN_NOTCONNECTED");
-      }
+      return wrapper;
     }
+
+    self.firstLoad = false;
+
+    if (!this.checkConnection()) {
+      wrapper.className = 'normal bright';
+      wrapper.innerHTML = this.translate("NETCONN_NOTCONNECTED");
+
+      return wrapper;
+    }
+
+    wrapper.className = 'small';
+
+    if (self.config.displayTextStatus) {
+      const headerText = document.createElement("div")
+      headerText.innerText = this.translate("NETCONN_CONNECTED");
+      wrapper.append(headerText);
+    }
+    wrapper.appendChild
+      (this.getStatElement("fa fa-cloud", self.pingDelay, this.translate("NETCONN_MILLISECOND")),
+    );
+    wrapper.appendChild(this.getStatElement("fa fa-download", self.downloadSpeed, "Mbps"));
+    wrapper.appendChild(this.getStatElement("fa fa-upload", self.uploadSpeed, "Mbps"));
 
 		return wrapper;
 	},
@@ -103,18 +123,6 @@ Module.register('MMM-NetworkConnection', {
   testUpdate: function() {
     this.sendSocketNotification('NETCONN_TEST_START', {'config':this.config});
   },
-
-	/*testUpdate: function(delay, fn) {
-		var nextLoad = this.config.updateInterval;
-		if (typeof delay !== 'undefined' && delay >= 0) {
-			nextLoad = delay;
-		}
-
-		var self = this
-		setInterval(function() {
-			self.getDom();
-		}, nextLoad);
-	},*/
 
   socketNotificationReceived: function(notification, payload) {
     if (notification == 'NETCONN_RESULT_DOWNLOAD') {
