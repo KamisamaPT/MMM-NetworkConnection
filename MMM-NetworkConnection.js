@@ -11,10 +11,10 @@
 
 Module.register('MMM-NetworkConnection', {
 
-	// Default module config.
-	defaults: {
-		updateInterval: 60 * 1000,
-		animationSpeed: 2.5 * 1000,
+  // Default module config.
+  defaults: {
+    updateInterval: 60 * 1000,
+    animationSpeed: 2.5 * 1000,
     maxTime: 5 * 1000,
 		initialLoadDelay: 2.5 * 1000,
     decimal: 1,
