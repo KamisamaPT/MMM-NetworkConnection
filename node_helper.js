@@ -17,17 +17,16 @@ module.exports = NodeHelper.create({
     //console.log(this.name + ' helper started ...');
   },
 
-  socketNotificationReceived : function(notification, payload){
-    const self = this;
+  socketNotificationReceived: function (notification, payload) {
     if (notification === 'CONFIG') {
+      const self = this;
       this.config = payload;
-      self.getStats();
-      setInterval(
-        function () {
-        self.getStats();
-        }, 
-        this.config.updateInterval,
-      );
+      setTimeout(() => {
+        this.getStats();
+        setInterval(() => {
+          this.getStats();
+        }, self.config.updateInterval);
+      }, self.config.initialLoadDelay);
     }
   },
 
