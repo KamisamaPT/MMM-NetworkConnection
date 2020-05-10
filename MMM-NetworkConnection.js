@@ -65,7 +65,6 @@ Module.register('MMM-NetworkConnection', {
         this.stats.uploadSpeed = payload;
       case 'NETCONN_RESULT_PING':
         this.stats.pingDelay = payload;
-
     }
     this.updateDom(this.firstLoad ? 10000 : this.config.animationSpeed);
   },
@@ -99,6 +98,8 @@ Module.register('MMM-NetworkConnection', {
       : this.translate("NETCONN_NA");
 
     const statWrapper = document.createElement("span");
+    statWrapper.className = 'statText';
+
     statWrapper.appendChild(statIcon);
     statWrapper.appendChild(statText);
 
